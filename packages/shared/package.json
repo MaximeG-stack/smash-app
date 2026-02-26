@@ -1,10 +1,11 @@
 {
-  "name": "@shared/types",
+  "name": "@smashi/shared",
   "version": "1.0.0",
   "main": "./types/index.ts",
   "exports": {
-    "@shared/types": "./types/index.ts",
-    "@shared/constants": "./constants/index.ts"
+    ".": "./types/index.ts",
+    "./types": "./types/index.ts",
+    "./constants": "./constants/index.ts"
   },
   "scripts": {
     "lint": "tsc --noEmit"

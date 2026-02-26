@@ -5,8 +5,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@shared/types": ["../../packages/shared/types"],
-      "@shared/constants": ["../../packages/shared/constants"]
+      "@smashi/shared": ["../../packages/shared/types/index.ts"],
+      "@smashi/shared/types": ["../../packages/shared/types/index.ts"],
+      "@smashi/shared/constants": ["../../packages/shared/constants/index.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.d.ts", "expo-env.d.ts"]

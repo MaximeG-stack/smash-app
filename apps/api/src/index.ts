@@ -4,9 +4,9 @@ import helmet from "helmet";
 import morgan from "morgan";
 import compression from "compression";
 
-// TODO: Importer les routes au fur et à mesure
-// import { authRouter } from "./routes/auth";
-// import { usersRouter } from "./routes/users";
+import { authRouter } from "./routes/auth";
+import { usersRouter } from "./routes/users";
+// Sprint 2+
 // import { matchesRouter } from "./routes/matches";
 // import { clubsRouter } from "./routes/clubs";
 // import { bookingsRouter } from "./routes/bookings";
@@ -29,8 +29,9 @@ app.get("/health", (_req, res) => {
 });
 
 // Routes API
-// app.use("/api/auth", authRouter);
-// app.use("/api/users", usersRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/users", usersRouter);
+// Sprint 2+
 // app.use("/api/matches", matchesRouter);
 // app.use("/api/clubs", clubsRouter);
 // app.use("/api/bookings", bookingsRouter);
