@@ -1,0 +1,15 @@
+{
+  "name": "@shared/types",
+  "version": "1.0.0",
+  "main": "./types/index.ts",
+  "exports": {
+    "@shared/types": "./types/index.ts",
+    "@shared/constants": "./constants/index.ts"
+  },
+  "scripts": {
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

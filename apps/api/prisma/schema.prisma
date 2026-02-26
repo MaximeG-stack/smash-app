@@ -1,0 +1,371 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== UTILISATEURS ====================
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  firebaseUid String   @unique
+  firstName   String
+  lastName    String
+  avatarUrl   String?
+  role        UserRole @default(PLAYER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  profile        UserProfile?
+  createdMatches Match[]           @relation("MatchCreator")
+  matchRequests  MatchRequest[]
+  matchPlayers   MatchPlayer[]
+  feedbacksGiven MatchFeedback[]   @relation("FeedbackGiver")
+  favoriteUsers  UserFavorite[]    @relation("UserFavoriting")
+  favoritedBy    UserFavorite[]    @relation("UserFavorited")
+  notifications  Notification[]
+  bookings       Booking[]
+
+  compatibilityA UserCompatibility[] @relation("CompatibilityUserA")
+  compatibilityB UserCompatibility[] @relation("CompatibilityUserB")
+
+  clubManager ClubManager?
+}
+
+model UserProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sports          Sport[]
+  primarySport    Sport?
+  level           PlayerLevel @default(BEGINNER)
+  fftRanking      String?
+  tenupScore      Float?
+
+  latitude        Float?
+  longitude       Float?
+  city            String?
+  postalCode      String?
+  searchRadius    Int         @default(20)
+
+  availabilities    Json?
+  preferredPosition String?
+  isHandisport      Boolean @default(false)
+  handicapDetails   String?
+
+  comfortLevelMin    Float?
+  comfortLevelMax    Float?
+  totalMatchesPlayed Int     @default(0)
+
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==================== PARTIES ====================
+
+model Match {
+  id          String  @id @default(cuid())
+  creatorId   String
+  creator     User    @relation("MatchCreator", fields: [creatorId], references: [id])
+
+  sport       Sport
+  title       String?
+  description String?
+
+  locationName String
+  latitude     Float
+  longitude    Float
+  clubId       String?
+  club         Club?   @relation(fields: [clubId], references: [id])
+  courtId      String?
+  court        Court?  @relation(fields: [courtId], references: [id])
+
+  scheduledAt     DateTime
+  durationMinutes Int      @default(60)
+
+  requiredLevel    PlayerLevel?
+  levelFlexibility Int          @default(1)
+
+  maxPlayers     Int
+  currentPlayers Int         @default(1)
+  status         MatchStatus @default(OPEN)
+  isPublic       Boolean     @default(true)
+
+  players   MatchPlayer[]
+  requests  MatchRequest[]
+  feedbacks MatchFeedback[]
+  booking   Booking?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sport, status, scheduledAt])
+  @@index([latitude, longitude])
+}
+
+model MatchPlayer {
+  id       String   @id @default(cuid())
+  matchId  String
+  match    Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+  joinedAt DateTime @default(now())
+
+  @@unique([matchId, userId])
+}
+
+model MatchRequest {
+  id      String        @id @default(cuid())
+  matchId String
+  match   Match         @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User          @relation(fields: [userId], references: [id])
+  status  RequestStatus @default(PENDING)
+  message String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([matchId, userId])
+}
+
+model MatchFeedback {
+  id          String             @id @default(cuid())
+  matchId     String
+  match       Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User               @relation("FeedbackGiver", fields: [userId], references: [id])
+  levelRating MatchFeedbackLevel
+  comment     String?
+  createdAt   DateTime           @default(now())
+
+  @@unique([matchId, userId])
+}
+
+// ==================== COMPATIBILITÉ ====================
+
+model UserCompatibility {
+  id      String @id @default(cuid())
+  userAId String
+  userA   User   @relation("CompatibilityUserA", fields: [userAId], references: [id])
+  userBId String
+  userB   User   @relation("CompatibilityUserB", fields: [userBId], references: [id])
+
+  overallScore   Float
+  levelScore     Float
+  proximityScore Float
+  socialScore    Float
+  matchesPlayed  Int       @default(0)
+  lastPlayedAt   DateTime?
+
+  calculatedAt DateTime @default(now())
+
+  @@unique([userAId, userBId])
+  @@index([overallScore(sort: Desc)])
+}
+
+model UserFavorite {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation("UserFavoriting", fields: [userId], references: [id])
+  favoriteId String
+  favorite   User     @relation("UserFavorited", fields: [favoriteId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, favoriteId])
+}
+
+// ==================== CLUBS & TERRAINS ====================
+
+model Club {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  address     String
+  city        String
+  postalCode  String
+  latitude    Float
+  longitude   Float
+  phone       String?
+  email       String?
+  website     String?
+  logoUrl     String?
+
+  sports               Sport[]
+  isHandisportFriendly Boolean          @default(false)
+  subscription         ClubSubscription @default(FREE)
+
+  courts   Court[]
+  matches  Match[]
+  bookings Booking[]
+  managers ClubManager[]
+
+  erpType   String?
+  erpApiUrl String?
+  erpApiKey String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([city])
+  @@index([latitude, longitude])
+}
+
+model Court {
+  id        String       @id @default(cuid())
+  clubId    String
+  club      Club         @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  name      String
+  sport     Sport
+  surface   CourtSurface?
+  isIndoor  Boolean      @default(false)
+  isLighted Boolean      @default(true)
+  isActive  Boolean      @default(true)
+
+  matches   Match[]
+  bookings  Booking[]
+  timeSlots TimeSlot[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TimeSlot {
+  id           String  @id @default(cuid())
+  courtId      String
+  court        Court   @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  dayOfWeek    Int
+  startTime    String
+  endTime      String
+  priceInCents Int
+  isAvailable  Boolean @default(true)
+}
+
+model ClubManager {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  clubId    String
+  club      Club     @relation(fields: [clubId], references: [id])
+  role      String   @default("manager")
+  createdAt DateTime @default(now())
+}
+
+// ==================== RÉSERVATIONS ====================
+
+model Booking {
+  id      String @id @default(cuid())
+  matchId String? @unique
+  match   Match?  @relation(fields: [matchId], references: [id])
+  userId  String
+  user    User    @relation(fields: [userId], references: [id])
+  clubId  String
+  club    Club    @relation(fields: [clubId], references: [id])
+  courtId String
+  court   Court   @relation(fields: [courtId], references: [id])
+
+  date              DateTime
+  startTime         String
+  endTime           String
+  priceInCents      Int
+  commissionInCents Int
+  stripePaymentId   String?
+  status            BookingStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}
+
+// ==================== ENUMS ====================
+
+enum Sport {
+  TENNIS
+  PADEL
+  SQUASH
+}
+
+enum PlayerLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum MatchStatus {
+  OPEN
+  FULL
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum MatchFeedbackLevel {
+  TOO_LOW
+  BALANCED
+  TOO_HIGH
+}
+
+enum CourtSurface {
+  CLAY
+  HARD
+  GRASS
+  SYNTHETIC
+}
+
+enum ClubSubscription {
+  FREE
+  STANDARD
+  PREMIUM
+}
+
+enum UserRole {
+  PLAYER
+  CLUB_MANAGER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum NotificationType {
+  MATCH_SUGGESTION
+  REQUEST_RECEIVED
+  REQUEST_ACCEPTED
+  REQUEST_REJECTED
+  MATCH_FULL
+  MATCH_REMINDER
+  MATCH_COMPLETED
+  BOOKING_CONFIRMED
+  GENERAL
+}

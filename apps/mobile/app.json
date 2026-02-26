@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "SMASHI",
+    "slug": "smashi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2ECC71"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.smashi.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SMASHI utilise ta localisation pour trouver des parties près de toi.",
+        "NSCameraUsageDescription": "SMASHI utilise ta caméra pour prendre ta photo de profil.",
+        "NSPhotoLibraryUsageDescription": "SMASHI accède à ta galerie pour choisir ta photo de profil."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2ECC71"
+      },
+      "package": "com.smashi.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-location",
+      "expo-image-picker",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@react-native-firebase/messaging"
+    ],
+    "scheme": "smashi",
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
