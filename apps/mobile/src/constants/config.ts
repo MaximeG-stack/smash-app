@@ -1,5 +1,10 @@
+const DEFAULT_API_URL =
+  typeof window !== "undefined" && window.location?.hostname !== "localhost"
+    ? "https://smashi-api.onrender.com"
+    : "http://localhost:3000";
+
 export const Config = {
-  apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000",
+  apiUrl: process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL,
   googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
 
   // Matching
