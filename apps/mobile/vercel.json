@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx expo export --platform web",
+  "buildCommand": "echo \"FIREBASE_KEY=$EXPO_PUBLIC_FIREBASE_API_KEY\" && npx expo export --platform web",
   "outputDirectory": "dist",
   "framework": null,
   "installCommand": "cd ../.. && npm install",
