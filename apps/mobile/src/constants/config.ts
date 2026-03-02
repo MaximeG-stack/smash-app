@@ -1,10 +1,10 @@
-const DEFAULT_API_URL =
-  typeof window !== "undefined" && window.location?.hostname !== "localhost"
-    ? "https://smashi-api.onrender.com"
-    : "http://localhost:3000";
+import { Platform } from "react-native";
+
+const isWeb = Platform.OS === "web";
+const isLocalhost = isWeb && typeof window !== "undefined" && window.location?.hostname === "localhost";
 
 export const Config = {
-  apiUrl: process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL,
+  apiUrl: isLocalhost ? "http://localhost:3000" : "https://smashi-api.onrender.com",
   googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
 
   // Matching
