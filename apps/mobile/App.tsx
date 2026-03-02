@@ -18,6 +18,13 @@ if (Platform.OS !== "web") {
   SplashScreen.preventAutoHideAsync().catch(() => {});
 }
 
+// PWA : enregistrement du service worker
+if (Platform.OS === "web" && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
 // ── Error Boundary ────────────────────────────────────────────
 class ErrorBoundary extends Component<
   { children: ReactNode },

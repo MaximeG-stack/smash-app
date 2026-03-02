@@ -44,7 +44,13 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png",
+      "name": "SMASHI",
+      "shortName": "SMASHI",
+      "description": "Trouve des joueurs, crée des parties de sports de raquettes",
+      "themeColor": "#2ECC71",
+      "backgroundColor": "#FFFFFF"
     },
     "plugins": [
       "expo-location",
