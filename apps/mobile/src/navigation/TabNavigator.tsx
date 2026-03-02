@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { View, Text } from "react-native";
 import type { MainTabParamList } from "./types";
 
-import { HomeScreen } from "@/screens/home/HomeScreen";
+import { HomeStackNavigator } from "./HomeStackNavigator";
 import { SearchScreen } from "@/screens/search/SearchScreen";
 import { CreateMatchScreen } from "@/screens/match/CreateMatchScreen";
 import { MyMatchesScreen } from "@/screens/match/MyMatchesScreen";
@@ -12,7 +12,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function TabIcon({ emoji, label, focused }: { emoji: string; label: string; focused: boolean }) {
   return (
-    <View className="items-center gap-0.5">
+    <View style={{ alignItems: "center", gap: 2 }}>
       <Text style={{ fontSize: 22 }}>{emoji}</Text>
       <Text
         style={{
@@ -44,7 +44,7 @@ export function TabNavigator() {
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeStackNavigator}
         options={{
           tabBarIcon: ({ focused }) => (
             <TabIcon emoji="🏠" label="Accueil" focused={focused} />

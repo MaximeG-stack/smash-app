@@ -262,21 +262,31 @@ Pas de notation individuelle. Le système apprend les combinaisons qui produisen
 
 ## 5. Roadmap (Sprints)
 
-### Sprint 1 — Setup + Auth + Profil joueur (2 semaines)
+### Sprint 1 — Setup + Auth + Profil joueur (2 semaines) ✅ TERMINÉ
 - [x] Init monorepo (Turborepo)
-- [ ] Setup Expo + NativeWind
-- [ ] Setup Express + Prisma + PostgreSQL
-- [ ] Firebase Auth (email, Google, Apple)
-- [ ] Onboarding joueur (choix sport, niveau, localisation, dispo)
-- [ ] Écran profil (lecture + édition)
-- [ ] Upload avatar (Cloudflare R2)
+- [x] Setup Expo + NativeWind + composants UI (Button, Input, Badge)
+- [x] Setup Express + Prisma + PostgreSQL (schema complet, migrations prêtes)
+- [x] Firebase Auth email/password (Google et Apple → Sprint 2)
+- [x] Onboarding joueur 4 étapes (sport, niveau, localisation, disponibilités)
+- [x] Écran profil (lecture + édition modale ville/bio/rayon)
+- [x] Upload avatar (base64 en dev, Cloudflare R2 en prod)
+- [x] Persistance session (AsyncStorage — plus besoin de se reconnecter)
+- [x] Navigation complète Auth → Onboarding → Tab Bar (5 onglets)
+- [x] Écrans Auth : Welcome, Login, Register, ForgotPassword
+- [x] Backend : register, login, getMe, getProfile, updateProfile, uploadAvatar
+- [x] Middleware JWT (requireAuth + requireRole)
 
-### Sprint 2 — CRUD Parties + Recherche (2 semaines)
-- [ ] Créer une partie (sport, lieu via Google Places, date, niveau, nb joueurs)
-- [ ] Liste des parties disponibles (avec filtres)
-- [ ] Détail d'une partie
-- [ ] Carte des parties proches (Google Maps)
-- [ ] Recherche full-text (lieu, club, joueur)
+### Sprint 2 — CRUD Parties + Recherche (2 semaines) ✅ TERMINÉ
+- [x] Créer une partie (sport, lieu + ville PACA, date/heure, niveau, nb joueurs, description)
+- [x] Liste des parties disponibles (avec filtres sport, niveau, géolocalisation)
+- [x] Détail d'une partie (joueurs inscrits, bouton rejoindre/quitter, annuler pour créateur)
+- [x] Rejoindre une partie (auto-accept Sprint 2 — système de demandes Sprint 3)
+- [x] Quitter une partie
+- [x] Recherche full-text (lieu, titre) + filtres sport + niveau
+- [x] Écran "Mes parties" : onglets Créées / Rejointes
+- [x] Backend : POST/GET/PATCH/DELETE /api/matches + GET /api/matches/my + join + leave
+- [x] MatchCard composant réutilisable (sport, statut, lieu, date, niveau, joueurs)
+- [ ] Carte des parties proches (Google Maps) — nécessite clé API, Sprint 3
 
 ### Sprint 3 — Système de demandes + Notifications (2 semaines)
 - [ ] Demander à rejoindre une partie

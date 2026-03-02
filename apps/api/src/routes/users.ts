@@ -1,16 +1,32 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth";
-import { getProfile, updateProfile, uploadAvatar } from "../controllers/usersController";
+import {
+  getProfile,
+  updateProfile,
+  uploadAvatar,
+  getSuggestions,
+  getFavorites,
+  getPublicProfile,
+  getCompatibility,
+  addFavorite,
+  removeFavorite,
+  registerFcmToken,
+} from "../controllers/usersController";
 
 export const usersRouter = Router();
 
 usersRouter.use(requireAuth);
 
-// GET /api/users/me
+// IMPORTANT : routes fixes AVANT /:id pour éviter les conflits
 usersRouter.get("/me", getProfile);
-
-// PATCH /api/users/profile
+usersRouter.get("/suggestions", getSuggestions);
+usersRouter.get("/favorites", getFavorites);
 usersRouter.patch("/profile", updateProfile);
-
-// POST /api/users/avatar
 usersRouter.post("/avatar", uploadAvatar);
+usersRouter.post("/fcm-token", registerFcmToken);
+
+// Routes dynamiques avec /:id
+usersRouter.get("/:id", getPublicProfile);
+usersRouter.get("/:id/compatibility", getCompatibility);
+usersRouter.post("/:id/favorite", addFavorite);
+usersRouter.delete("/:id/favorite", removeFavorite);

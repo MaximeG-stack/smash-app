@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import type { TextInputProps } from "react-native";
 
 interface InputProps extends TextInputProps {
@@ -22,32 +22,79 @@ export function Input({
   const [focused, setFocused] = useState(false);
 
   return (
-    <View className="w-full gap-1">
+    <View style={styles.wrapper}>
       {label && (
-        <Text className="text-sm font-medium text-neutral-700 mb-1">{label}</Text>
+        <Text style={styles.label}>{label}</Text>
       )}
       <View
-        className={[
-          "flex-row items-center h-12 px-4 rounded-button border bg-white",
-          focused ? "border-primary" : error ? "border-danger" : "border-neutral-200",
-        ].join(" ")}
+        style={[
+          styles.inputContainer,
+          focused ? styles.inputFocused : error ? styles.inputError : styles.inputDefault,
+        ]}
       >
-        {leftIcon && <View className="mr-2">{leftIcon}</View>}
+        {leftIcon && <View style={styles.leftIconWrapper}>{leftIcon}</View>}
         <TextInput
-          className="flex-1 text-base text-neutral-900 h-full"
+          style={[styles.textInput, style]}
           placeholderTextColor="#6B7280"
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          style={style}
           {...props}
         />
         {rightIcon && (
-          <TouchableOpacity onPress={onRightIconPress} className="ml-2">
+          <TouchableOpacity onPress={onRightIconPress} style={styles.rightIconWrapper}>
             {rightIcon}
           </TouchableOpacity>
         )}
       </View>
-      {error && <Text className="text-xs text-danger mt-1">{error}</Text>}
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  wrapper: {
+    width: "100%",
+    gap: 4,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#374151",
+    marginBottom: 4,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 48,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  inputDefault: {
+    borderColor: "#E5E7EB",
+  },
+  inputFocused: {
+    borderColor: "#2ECC71",
+  },
+  inputError: {
+    borderColor: "#E74C3C",
+  },
+  leftIconWrapper: {
+    marginRight: 8,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#1A1A2E",
+    height: "100%",
+  },
+  rightIconWrapper: {
+    marginLeft: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    color: "#E74C3C",
+    marginTop: 4,
+  },
+});

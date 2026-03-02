@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "@/navigation/types";
@@ -39,7 +39,7 @@ export function OnboardingAvailabilityScreen({ navigation }: Props) {
 
   const { sports, levelBySport, fftRanking, latitude, longitude, city, searchRadius, isHandisport } =
     useOnboardingStore();
-  const { setOnboardingCompleted } = useAuthStore();
+  const { setOnboardingCompleted, updateUser } = useAuthStore();
 
   const toggle = (day: Day, slot: Slot) => {
     setAvail((prev) => {
@@ -72,6 +72,9 @@ export function OnboardingAvailabilityScreen({ navigation }: Props) {
         isHandisport,
       });
 
+      // Refresh user data so ProfileScreen sees the saved profile
+      const { data } = await api.get("/api/users/me");
+      updateUser(data.user);
       setOnboardingCompleted();
     } catch {
       Alert.alert(
@@ -87,43 +90,43 @@ export function OnboardingAvailabilityScreen({ navigation }: Props) {
   const hasAnySelection = Object.values(avail).some((slots) => slots && slots.length > 0);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <OnboardingProgress step={4} total={4} />
 
-        <Text className="text-2xl font-bold text-neutral-900 mt-6 mb-2">
+        <Text style={styles.title}>
           Quand es-tu dispo ?
         </Text>
-        <Text className="text-neutral-500 mb-6">
+        <Text style={styles.subtitle}>
           Sélectionne tes créneaux habituels. Tu pourras les modifier à tout moment.
         </Text>
 
         {/* Grille jours × créneaux */}
-        <View className="gap-3">
+        <View style={styles.gridContainer}>
           {DAYS.map(({ key: day, label }) => (
-            <View key={day} className="flex-row items-center gap-2">
+            <View key={day} style={styles.dayRow}>
               {/* Jour */}
-              <Text className="w-10 text-sm font-medium text-neutral-600">{label}</Text>
+              <Text style={styles.dayLabel}>{label}</Text>
 
               {/* Créneaux */}
-              <View className="flex-1 flex-row gap-2">
+              <View style={styles.slotsRow}>
                 {SLOTS.map(({ key: slot, label: slotLabel }) => {
                   const selected = isSelected(day, slot);
                   return (
                     <TouchableOpacity
                       key={slot}
                       onPress={() => toggle(day, slot)}
-                      style={{
-                        flex: 1,
-                        paddingVertical: 8,
-                        borderRadius: 8,
-                        borderWidth: 1.5,
-                        borderColor: selected ? "#2ECC71" : "#E5E7EB",
-                        backgroundColor: selected ? "#EAFAF1" : "#F9FAFB",
-                        alignItems: "center",
-                      }}
+                      style={[
+                        styles.slotButton,
+                        selected ? styles.slotButtonSelected : styles.slotButtonDefault,
+                      ]}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: "600", color: selected ? "#1A9B50" : "#6B7280" }}>
+                      <Text
+                        style={[
+                          styles.slotText,
+                          { color: selected ? "#1A9B50" : "#6B7280" },
+                        ]}
+                      >
                         {slotLabel}
                       </Text>
                     </TouchableOpacity>
@@ -135,15 +138,15 @@ export function OnboardingAvailabilityScreen({ navigation }: Props) {
         </View>
 
         {!hasAnySelection && (
-          <Text className="text-xs text-neutral-400 text-center mt-6">
+          <Text style={styles.skipHint}>
             Tu peux passer cette étape — tes dispos s'affineront avec l'utilisation
           </Text>
         )}
 
-        <View className="h-8" />
+        <View style={styles.spacer} />
       </ScrollView>
 
-      <View className="px-6 pb-8 pt-4 gap-3">
+      <View style={styles.bottomContainer}>
         <Button
           label="Commencer à jouer 🎾"
           onPress={handleFinish}
@@ -161,3 +164,78 @@ export function OnboardingAvailabilityScreen({ navigation }: Props) {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1A1A2E",
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: "#6B7280",
+    marginBottom: 24,
+  },
+  gridContainer: {
+    gap: 12,
+  },
+  dayRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  dayLabel: {
+    width: 40,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#4B5563",
+  },
+  slotsRow: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 8,
+  },
+  slotButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: "center",
+  },
+  slotButtonDefault: {
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
+  },
+  slotButtonSelected: {
+    borderColor: "#2ECC71",
+    backgroundColor: "#EAFAF1",
+  },
+  slotText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  skipHint: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    textAlign: "center",
+    marginTop: 24,
+  },
+  spacer: {
+    height: 32,
+  },
+  bottomContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    paddingTop: 16,
+    gap: 12,
+  },
+});

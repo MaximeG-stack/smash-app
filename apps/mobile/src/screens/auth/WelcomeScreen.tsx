@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { View, Text, FlatList, useWindowDimensions, TouchableOpacity } from "react-native";
+import { View, Text, FlatList, useWindowDimensions, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "@/navigation/types";
@@ -38,18 +38,20 @@ export function WelcomeScreen({ navigation }: Props) {
 
   const goNext = () => {
     if (currentIndex < SLIDES.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
+      const next = currentIndex + 1;
+      flatListRef.current?.scrollToOffset({ offset: next * width, animated: true });
+      setCurrentIndex(next);
     } else {
       navigation.navigate("Login");
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={styles.container}>
       {/* Skip */}
-      <View className="flex-row justify-end px-6 pt-2">
+      <View style={styles.skipRow}>
         <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-          <Text className="text-neutral-500 font-medium">Passer</Text>
+          <Text style={styles.skipText}>Passer</Text>
         </TouchableOpacity>
       </View>
 
@@ -66,12 +68,12 @@ export function WelcomeScreen({ navigation }: Props) {
           setCurrentIndex(idx);
         }}
         renderItem={({ item }) => (
-          <View style={{ width }} className="flex-1 items-center justify-center px-8">
-            <Text style={{ fontSize: 80 }}>{item.emoji}</Text>
-            <Text className="text-3xl font-bold text-neutral-900 text-center mt-8 leading-tight">
+          <View style={[styles.slide, { width }]}>
+            <Text style={styles.slideEmoji}>{item.emoji}</Text>
+            <Text style={styles.slideTitle}>
               {item.title}
             </Text>
-            <Text className="text-base text-neutral-500 text-center mt-4 leading-relaxed">
+            <Text style={styles.slideSubtitle}>
               {item.subtitle}
             </Text>
           </View>
@@ -79,7 +81,7 @@ export function WelcomeScreen({ navigation }: Props) {
       />
 
       {/* Indicateurs */}
-      <View className="flex-row justify-center gap-2 mb-6">
+      <View style={styles.dotsRow}>
         {SLIDES.map((_, i) => (
           <View
             key={i}
@@ -94,7 +96,7 @@ export function WelcomeScreen({ navigation }: Props) {
       </View>
 
       {/* CTA */}
-      <View className="px-6 pb-8 gap-3">
+      <View style={styles.ctaContainer}>
         <Button
           label={currentIndex < SLIDES.length - 1 ? "Suivant" : "Commencer"}
           onPress={goNext}
@@ -110,3 +112,55 @@ export function WelcomeScreen({ navigation }: Props) {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  skipRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  skipText: {
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  slide: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  slideEmoji: {
+    fontSize: 80,
+  },
+  slideTitle: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: "#1A1A2E",
+    textAlign: "center",
+    marginTop: 32,
+    lineHeight: 38,
+  },
+  slideSubtitle: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+    marginTop: 16,
+    lineHeight: 24,
+  },
+  dotsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 24,
+  },
+  ctaContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    gap: 12,
+  },
+});

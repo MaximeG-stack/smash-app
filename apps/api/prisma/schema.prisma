@@ -17,6 +17,7 @@ model User {
   lastName    String
   avatarUrl   String?
   role        UserRole @default(PLAYER)
+  fcmToken    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -34,6 +35,10 @@ model User {
   compatibilityB UserCompatibility[] @relation("CompatibilityUserB")
 
   clubManager ClubManager?
+
+  conversations1 Conversation[] @relation("ConversationParticipant1")
+  conversations2 Conversation[] @relation("ConversationParticipant2")
+  sentMessages   Message[]      @relation("MessageSender")
 }
 
 model UserProfile {
@@ -136,14 +141,18 @@ model MatchRequest {
 }
 
 model MatchFeedback {
-  id          String             @id @default(cuid())
-  matchId     String
-  match       Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User               @relation("FeedbackGiver", fields: [userId], references: [id])
-  levelRating MatchFeedbackLevel
-  comment     String?
-  createdAt   DateTime           @default(now())
+  id              String             @id @default(cuid())
+  matchId         String
+  match           Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User               @relation("FeedbackGiver", fields: [userId], references: [id])
+  levelRating     MatchFeedbackLevel
+  overallRating   Int                @default(3) // 1-5 étoiles
+  fairPlayRating  Int?               // 1-5
+  punctualityRating Int?             // 1-5
+  ambianceRating  Int?               // 1-5
+  comment         String?
+  createdAt       DateTime           @default(now())
 
   @@unique([matchId, userId])
 }
@@ -179,6 +188,37 @@ model UserFavorite {
   createdAt  DateTime @default(now())
 
   @@unique([userId, favoriteId])
+}
+
+// ==================== CONVERSATIONS ====================
+
+model Conversation {
+  id             String    @id @default(cuid())
+  participant1Id String
+  participant1   User      @relation("ConversationParticipant1", fields: [participant1Id], references: [id])
+  participant2Id String
+  participant2   User      @relation("ConversationParticipant2", fields: [participant2Id], references: [id])
+  lastMessageAt  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  messages       Message[]
+
+  @@unique([participant1Id, participant2Id])
+  @@index([participant1Id])
+  @@index([participant2Id])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("MessageSender", fields: [senderId], references: [id])
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
 }
 
 // ==================== CLUBS & TERRAINS ====================
@@ -360,12 +400,14 @@ enum BookingStatus {
 
 enum NotificationType {
   MATCH_SUGGESTION
+  MATCH_PROPOSAL
   REQUEST_RECEIVED
   REQUEST_ACCEPTED
   REQUEST_REJECTED
   MATCH_FULL
   MATCH_REMINDER
   MATCH_COMPLETED
+  MESSAGE_RECEIVED
   BOOKING_CONFIRMED
   GENERAL
 }

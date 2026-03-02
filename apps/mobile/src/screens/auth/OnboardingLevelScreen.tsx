@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "@/navigation/types";
@@ -68,17 +68,17 @@ export function OnboardingLevelScreen({ navigation }: Props) {
   const canContinue = sports.every((s) => levelBySport[s]);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <OnboardingProgress step={2} total={4} />
 
-        <Text className="text-2xl font-bold text-neutral-900 mt-6 mb-1">
+        <Text style={styles.title}>
           Quel est ton niveau ?
         </Text>
 
         {/* Navigation entre sports */}
         {sports.length > 1 && (
-          <View className="flex-row gap-2 my-4">
+          <View style={styles.sportTabsRow}>
             {sports.map((sport, idx) => {
               const isDone = !!levelBySport[sport];
               const isCurrent = idx === currentSportIdx;
@@ -86,18 +86,20 @@ export function OnboardingLevelScreen({ navigation }: Props) {
                 <TouchableOpacity
                   key={sport}
                   onPress={() => setCurrentSportIdx(idx)}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 8,
-                    borderRadius: 8,
-                    borderWidth: 2,
-                    borderColor: isCurrent ? "#2ECC71" : isDone ? "#D5F5E3" : "#E5E7EB",
-                    backgroundColor: isCurrent ? "#EAFAF1" : isDone ? "#F9FAFB" : "#fff",
-                    alignItems: "center",
-                  }}
+                  style={[
+                    styles.sportTab,
+                    isCurrent
+                      ? styles.sportTabCurrent
+                      : isDone
+                      ? styles.sportTabDone
+                      : styles.sportTabDefault,
+                  ]}
                 >
                   <Text
-                    className={`text-sm font-semibold ${isCurrent ? "text-primary-dark" : "text-neutral-500"}`}
+                    style={[
+                      styles.sportTabText,
+                      isCurrent ? styles.sportTabTextCurrent : styles.sportTabTextDefault,
+                    ]}
                   >
                     {SPORT_LABEL[sport]} {isDone && "✓"}
                   </Text>
@@ -107,12 +109,12 @@ export function OnboardingLevelScreen({ navigation }: Props) {
           </View>
         )}
 
-        <Text className="text-neutral-500 mb-6">
+        <Text style={styles.forSportText}>
           Pour{" "}
-          <Text className="font-semibold text-neutral-900">{SPORT_LABEL[currentSport]}</Text>
+          <Text style={styles.forSportBold}>{SPORT_LABEL[currentSport]}</Text>
         </Text>
 
-        <View className="gap-3 mb-6">
+        <View style={styles.levelsContainer}>
           {LEVELS.map((level) => {
             const isSelected = selectedLevel === level.key;
             const c = Colors.level[level.key];
@@ -121,42 +123,34 @@ export function OnboardingLevelScreen({ navigation }: Props) {
                 key={level.key}
                 onPress={() => handleSelect(level.key)}
                 activeOpacity={0.8}
-                style={{
-                  borderWidth: 2,
-                  borderColor: isSelected ? c.color : "#E5E7EB",
-                  borderRadius: 12,
-                  padding: 14,
-                  backgroundColor: isSelected ? c.bg : "#fff",
-                }}
+                style={[
+                  styles.levelCard,
+                  {
+                    borderColor: isSelected ? c.color : "#E5E7EB",
+                    backgroundColor: isSelected ? c.bg : "#FFFFFF",
+                  },
+                ]}
               >
-                <View className="flex-row justify-between items-center">
+                <View style={styles.levelCardHeader}>
                   <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "600",
-                      color: isSelected ? c.text : "#1A1A2E",
-                    }}
+                    style={[
+                      styles.levelLabel,
+                      { color: isSelected ? c.text : "#1A1A2E" },
+                    ]}
                   >
                     {level.label}
                   </Text>
                   {isSelected && (
                     <View
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 10,
-                        backgroundColor: c.color,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
+                      style={[styles.levelCheckCircle, { backgroundColor: c.color }]}
                     >
-                      <Text style={{ color: "#fff", fontSize: 12 }}>✓</Text>
+                      <Text style={styles.levelCheckMark}>✓</Text>
                     </View>
                   )}
                 </View>
-                <Text className="text-sm text-neutral-500 mt-1">{level.description}</Text>
+                <Text style={styles.levelDescription}>{level.description}</Text>
                 <Text
-                  style={{ fontSize: 11, color: c.text, marginTop: 2, fontStyle: "italic" }}
+                  style={[styles.levelExample, { color: c.text }]}
                 >
                   {level.example}
                 </Text>
@@ -167,7 +161,7 @@ export function OnboardingLevelScreen({ navigation }: Props) {
 
         {/* Classement FFT optionnel (Tennis uniquement) */}
         {currentSport === "TENNIS" && (
-          <View className="mb-6">
+          <View style={styles.fftContainer}>
             <Input
               label="Classement FFT (optionnel)"
               value={fftRanking}
@@ -175,14 +169,14 @@ export function OnboardingLevelScreen({ navigation }: Props) {
               placeholder="Ex : 15/2, 4/6, NC"
               autoCapitalize="characters"
             />
-            <Text className="text-xs text-neutral-400 mt-1">
+            <Text style={styles.fftHint}>
               Ton classement FFT nous aide à affiner le matching
             </Text>
           </View>
         )}
       </ScrollView>
 
-      <View className="px-6 pb-8 pt-4">
+      <View style={styles.bottomContainer}>
         <Button
           label={
             currentSportIdx < sports.length - 1
@@ -196,3 +190,115 @@ export function OnboardingLevelScreen({ navigation }: Props) {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1A1A2E",
+    marginTop: 24,
+    marginBottom: 4,
+  },
+  sportTabsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginVertical: 16,
+  },
+  sportTab: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+    alignItems: "center",
+  },
+  sportTabDefault: {
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+  sportTabCurrent: {
+    borderColor: "#2ECC71",
+    backgroundColor: "#EAFAF1",
+  },
+  sportTabDone: {
+    borderColor: "#D5F5E3",
+    backgroundColor: "#F9FAFB",
+  },
+  sportTabText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  sportTabTextCurrent: {
+    color: "#1A9B50",
+  },
+  sportTabTextDefault: {
+    color: "#6B7280",
+  },
+  forSportText: {
+    color: "#6B7280",
+    marginBottom: 24,
+  },
+  forSportBold: {
+    fontWeight: "600",
+    color: "#1A1A2E",
+  },
+  levelsContainer: {
+    gap: 12,
+    marginBottom: 24,
+  },
+  levelCard: {
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 14,
+  },
+  levelCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  levelLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  levelCheckCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  levelCheckMark: {
+    color: "#FFFFFF",
+    fontSize: 12,
+  },
+  levelDescription: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
+  },
+  levelExample: {
+    fontSize: 11,
+    marginTop: 2,
+    fontStyle: "italic",
+  },
+  fftContainer: {
+    marginBottom: 24,
+  },
+  fftHint: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginTop: 4,
+  },
+  bottomContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    paddingTop: 16,
+  },
+});

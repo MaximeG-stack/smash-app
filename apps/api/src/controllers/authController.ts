@@ -16,10 +16,11 @@ function signJwt(userId: string, role: string): string {
 
 async function verifyFirebaseToken(token: string) {
   if (!admin.apps.length) {
+    const rawKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY ?? "{}";
+    const parsed = JSON.parse(rawKey);
+    console.log("[Firebase Admin] Initializing with project:", parsed.project_id, "email:", parsed.client_email?.substring(0, 20) + "...");
     admin.initializeApp({
-      credential: admin.credential.cert(
-        JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY ?? "{}"),
-      ),
+      credential: admin.credential.cert(parsed),
     });
   }
   return admin.auth().verifyIdToken(token);
@@ -37,8 +38,11 @@ export async function register(req: Request, res: Response) {
   try {
     const decoded = await verifyFirebaseToken(firebaseToken);
 
-    const user = await prisma.user.create({
-      data: {
+    // upsert: handles the case where Firebase account exists but DB user doesn't
+    const user = await prisma.user.upsert({
+      where: { firebaseUid: decoded.uid },
+      update: {},
+      create: {
         email: decoded.email ?? "",
         firebaseUid: decoded.uid,
         firstName: firstName.trim(),
@@ -49,16 +53,8 @@ export async function register(req: Request, res: Response) {
     const token = signJwt(user.id, user.role);
     res.status(201).json({ user, token });
   } catch (err: unknown) {
-    if (
-      err instanceof Error &&
-      err.message.includes("Unique constraint") &&
-      err.message.includes("email")
-    ) {
-      res.status(409).json({ error: "Cet email est déjà utilisé" });
-    } else {
-      console.error("[register]", err);
-      res.status(500).json({ error: "Erreur lors de l'inscription" });
-    }
+    console.error("[register]", err);
+    res.status(500).json({ error: "Erreur lors de l'inscription" });
   }
 }
 
@@ -74,21 +70,41 @@ export async function login(req: Request, res: Response) {
   try {
     const decoded = await verifyFirebaseToken(firebaseToken);
 
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { firebaseUid: decoded.uid },
       include: { profile: true },
     });
 
+    // Si l'user n'existe pas (premier login Google/Apple), le créer automatiquement
     if (!user) {
-      res.status(404).json({ error: "Utilisateur introuvable. Inscris-toi d'abord." });
-      return;
+      const isOAuth = decoded.firebase?.sign_in_provider !== "password";
+      if (!isOAuth) {
+        res.status(404).json({ error: "Utilisateur introuvable. Inscris-toi d'abord." });
+        return;
+      }
+
+      const nameParts = (decoded.name ?? "").split(" ");
+      const firstName = nameParts[0] || "Utilisateur";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      user = await prisma.user.create({
+        data: {
+          email: decoded.email ?? "",
+          firebaseUid: decoded.uid,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          avatarUrl: decoded.picture ?? null,
+        },
+        include: { profile: true },
+      });
     }
 
     const token = signJwt(user.id, user.role);
     res.json({ user, token });
-  } catch (err) {
-    console.error("[login]", err);
-    res.status(401).json({ error: "Token Firebase invalide" });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[login] Firebase verification failed:", message);
+    res.status(401).json({ error: "Token Firebase invalide", details: message });
   }
 }
 

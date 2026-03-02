@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Alert, TouchableOpacity } from "react-native";
+import { View, Text, Alert, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "@/navigation/types";
@@ -31,29 +31,29 @@ export function ForgotPasswordScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white px-6">
-      <TouchableOpacity onPress={() => navigation.goBack()} className="mt-4 mb-8">
-        <Text className="text-neutral-500">← Retour</Text>
+    <SafeAreaView style={styles.container}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <Text style={styles.backText}>← Retour</Text>
       </TouchableOpacity>
 
       {sent ? (
-        <View className="flex-1 items-center justify-center gap-4">
-          <Text style={{ fontSize: 64 }}>📧</Text>
-          <Text className="text-2xl font-bold text-neutral-900 text-center">Email envoyé !</Text>
-          <Text className="text-base text-neutral-500 text-center">
+        <View style={styles.sentContainer}>
+          <Text style={styles.sentEmoji}>📧</Text>
+          <Text style={styles.sentTitle}>Email envoyé !</Text>
+          <Text style={styles.sentSubtitle}>
             Vérifie ta boîte mail et clique sur le lien pour réinitialiser ton mot de passe.
           </Text>
-          <View className="w-full mt-6">
+          <View style={styles.sentButtonWrapper}>
             <Button label="Retour à la connexion" onPress={() => navigation.navigate("Login")} />
           </View>
         </View>
       ) : (
-        <View className="gap-6">
+        <View style={styles.formContainer}>
           <View>
-            <Text className="text-3xl font-bold text-neutral-900 mb-2">
+            <Text style={styles.title}>
               Mot de passe oublié ?
             </Text>
-            <Text className="text-neutral-500">
+            <Text style={styles.subtitle}>
               Saisis ton email et on t'envoie un lien pour le réinitialiser.
             </Text>
           </View>
@@ -73,3 +73,54 @@ export function ForgotPasswordScreen({ navigation }: Props) {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 24,
+  },
+  backButton: {
+    marginTop: 16,
+    marginBottom: 32,
+  },
+  backText: {
+    color: "#6B7280",
+  },
+  sentContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+  },
+  sentEmoji: {
+    fontSize: 64,
+  },
+  sentTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1A1A2E",
+    textAlign: "center",
+  },
+  sentSubtitle: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  sentButtonWrapper: {
+    width: "100%",
+    marginTop: 24,
+  },
+  formContainer: {
+    gap: 24,
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: "#1A1A2E",
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: "#6B7280",
+  },
+});

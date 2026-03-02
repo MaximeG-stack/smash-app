@@ -1,12 +1,27 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Alert, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "@/navigation/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { loginWithEmail, loginWithGoogle } from "@/services/authService";
+import { loginWithEmail, loginWithGoogleCredential, loginWithAppleCredential } from "@/services/authService";
 import { useAuthStore } from "@/stores/authStore";
+import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
+import * as WebBrowser from "expo-web-browser";
+
+const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+const isGoogleConfigured = !!(GOOGLE_CLIENT_ID || GOOGLE_IOS_CLIENT_ID || GOOGLE_ANDROID_CLIENT_ID);
+
+// Import Google auth seulement si configuré (évite le crash si clés absentes)
+let Google: typeof import("expo-auth-session/providers/google") | null = null;
+if (isGoogleConfigured) {
+  WebBrowser.maybeCompleteAuthSession();
+  Google = require("expo-auth-session/providers/google");
+}
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
@@ -15,7 +30,8 @@ export function LoginScreen({ navigation }: Props) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { setUser, setLoading, isLoading } = useAuthStore();
+  const [apiError, setApiError] = useState<string | null>(null);
+  const { setUser, setOnboardingCompleted, setLoading, isLoading } = useAuthStore();
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -27,52 +43,131 @@ export function LoginScreen({ navigation }: Props) {
 
   const handleLogin = async () => {
     if (!validate()) return;
+    setApiError(null);
     setLoading(true);
     try {
       const { user, token } = await loginWithEmail(email.trim().toLowerCase(), password);
       setUser(user, token);
-      if (!user.profile) {
+      if (user.profile) {
+        setOnboardingCompleted(); // RootNavigator bascule vers Main
+      } else {
         navigation.navigate("OnboardingSport");
       }
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error && err.message.includes("auth/invalid")
+      // Extraire les détails de l'erreur backend (axios)
+      const axiosErr = err as { response?: { data?: { details?: string; error?: string } } };
+      const details = axiosErr?.response?.data?.details;
+      const msg = details
+        ? `[Debug] ${details}`
+        : err instanceof Error && err.message.includes("auth/invalid")
           ? "Email ou mot de passe incorrect"
-          : "Connexion impossible. Réessaie.";
-      Alert.alert("Connexion échouée", msg);
+          : err instanceof Error
+            ? err.message
+            : "Connexion impossible. Réessaie.";
+      setApiError(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogle = async () => {
+  // Google Sign-In — hook conditionnel (pas d'appel si clés absentes)
+  const googleHook = Google?.useIdTokenAuthRequest
+    ? Google.useIdTokenAuthRequest({
+        expoClientId: GOOGLE_CLIENT_ID,
+        iosClientId: GOOGLE_IOS_CLIENT_ID,
+        androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+      })
+    : null;
+
+  const googleResponse = googleHook?.[1] ?? null;
+  const promptGoogle = googleHook?.[2] ?? null;
+
+  const handleGoogleResponse = async () => {
+    if (googleResponse?.type !== "success") return;
+    const idToken = googleResponse.params.id_token;
+    if (!idToken) return;
+
+    setApiError(null);
     setLoading(true);
     try {
-      const { user, token } = await loginWithGoogle();
+      const { user, token } = await loginWithGoogleCredential(idToken);
       setUser(user, token);
-      if (!user.profile) navigation.navigate("OnboardingSport");
-    } catch {
-      Alert.alert("Erreur", "Connexion Google impossible.");
+      if (user.profile) {
+        setOnboardingCompleted();
+      } else {
+        navigation.navigate("OnboardingSport");
+      }
+    } catch (err: unknown) {
+      setApiError(err instanceof Error ? err.message : "Connexion Google impossible.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Réagir quand Google répond
+  if (googleResponse?.type === "success" && !isLoading) {
+    handleGoogleResponse();
+  }
+
+  const handleGoogle = () => {
+    promptGoogle?.();
+  };
+
+  // Apple Sign-In
+  const handleApple = async () => {
+    setApiError(null);
+    setLoading(true);
+    try {
+      const nonce = Math.random().toString(36).substring(2, 10);
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        nonce,
+      );
+
+      const appleCredential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+
+      if (!appleCredential.identityToken) {
+        throw new Error("Pas de token Apple reçu");
+      }
+
+      const { user, token } = await loginWithAppleCredential(appleCredential.identityToken, nonce);
+      setUser(user, token);
+      if (user.profile) {
+        setOnboardingCompleted();
+      } else {
+        navigation.navigate("OnboardingSport");
+      }
+    } catch (err: unknown) {
+      const error = err as { code?: string; message?: string };
+      if (error.code !== "ERR_REQUEST_CANCELED") {
+        setApiError(error.message ?? "Connexion Apple impossible.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={styles.container}>
       <ScrollView
-        className="flex-1 px-6"
+        style={styles.scrollView}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View className="items-center py-10">
-          <Text className="text-4xl font-bold text-primary tracking-widest">SMASHI</Text>
-          <Text className="text-base text-neutral-500 mt-2">Content de te revoir 👋</Text>
+        <View style={styles.header}>
+          <Text style={styles.logoText}>SMASHI</Text>
+          <Text style={styles.subtitleText}>Content de te revoir 👋</Text>
         </View>
 
         {/* Formulaire */}
-        <View className="gap-4">
+        <View style={styles.formContainer}>
           <Input
             label="Email"
             value={email}
@@ -91,7 +186,7 @@ export function LoginScreen({ navigation }: Props) {
             secureTextEntry={!showPassword}
             error={errors.password}
             rightIcon={
-              <Text className="text-neutral-500 text-sm">
+              <Text style={styles.showPasswordText}>
                 {showPassword ? "Cacher" : "Voir"}
               </Text>
             }
@@ -100,38 +195,153 @@ export function LoginScreen({ navigation }: Props) {
 
           <TouchableOpacity
             onPress={() => navigation.navigate("ForgotPassword")}
-            className="self-end"
+            style={styles.forgotPasswordButton}
           >
-            <Text className="text-sm text-primary font-medium">Mot de passe oublié ?</Text>
+            <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
           </TouchableOpacity>
         </View>
 
         {/* CTA */}
-        <View className="gap-3 mt-8">
+        <View style={styles.ctaContainer}>
+          {apiError && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorBannerText}>{apiError}</Text>
+            </View>
+          )}
           <Button label="Se connecter" onPress={handleLogin} loading={isLoading} />
 
-          <View className="flex-row items-center gap-3 my-2">
-            <View className="flex-1 h-px bg-neutral-200" />
-            <Text className="text-neutral-500 text-sm">ou</Text>
-            <View className="flex-1 h-px bg-neutral-200" />
-          </View>
+          {(isGoogleConfigured || Platform.OS === "ios") && (
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>ou</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          )}
 
-          <Button
-            label="Continuer avec Google"
-            variant="secondary"
-            onPress={handleGoogle}
-            loading={isLoading}
-          />
+          {isGoogleConfigured && (
+            <Button
+              label="Continuer avec Google"
+              variant="secondary"
+              onPress={handleGoogle}
+              loading={isLoading}
+            />
+          )}
+
+          {Platform.OS === "ios" && (
+            <TouchableOpacity
+              style={styles.appleButton}
+              onPress={handleApple}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.appleButtonText}> Continuer avec Apple</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Inscription */}
-        <View className="flex-row justify-center items-center mt-8 pb-8">
-          <Text className="text-neutral-500">Pas encore de compte ? </Text>
+        <View style={styles.registerRow}>
+          <Text style={styles.registerText}>Pas encore de compte ? </Text>
           <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-            <Text className="text-primary font-semibold">S'inscrire</Text>
+            <Text style={styles.registerLink}>S'inscrire</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  header: {
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  logoText: {
+    fontSize: 36,
+    fontWeight: "700",
+    color: "#2ECC71",
+    letterSpacing: 6,
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: "#6B7280",
+    marginTop: 8,
+  },
+  formContainer: {
+    gap: 16,
+  },
+  showPasswordText: {
+    color: "#6B7280",
+    fontSize: 14,
+  },
+  forgotPasswordButton: {
+    alignSelf: "flex-end",
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    color: "#2ECC71",
+    fontWeight: "500",
+  },
+  ctaContainer: {
+    gap: 12,
+    marginTop: 32,
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginVertical: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E5E7EB",
+  },
+  dividerText: {
+    color: "#6B7280",
+    fontSize: 14,
+  },
+  registerRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 32,
+    paddingBottom: 32,
+  },
+  registerText: {
+    color: "#6B7280",
+  },
+  registerLink: {
+    color: "#2ECC71",
+    fontWeight: "600",
+  },
+  errorBanner: {
+    backgroundColor: "#FEE2E2",
+    borderRadius: 8,
+    padding: 12,
+  },
+  errorBannerText: {
+    color: "#DC2626",
+    fontSize: 14,
+    textAlign: "center",
+  },
+  appleButton: {
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: "#000000",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  appleButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+});

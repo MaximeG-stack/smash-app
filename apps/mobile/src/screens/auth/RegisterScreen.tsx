@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Alert, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "@/navigation/types";
@@ -19,6 +19,7 @@ export function RegisterScreen({ navigation }: Props) {
     confirmPassword: "",
   });
   const [errors, setErrors] = useState<Partial<typeof form>>({});
+  const [apiError, setApiError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const { setUser, setLoading, isLoading } = useAuthStore();
 
@@ -38,6 +39,7 @@ export function RegisterScreen({ navigation }: Props) {
 
   const handleRegister = async () => {
     if (!validate()) return;
+    setApiError(null);
     setLoading(true);
     try {
       const { user, token } = await registerWithEmail(
@@ -52,31 +54,33 @@ export function RegisterScreen({ navigation }: Props) {
       const msg =
         err instanceof Error && err.message.includes("auth/email-already-in-use")
           ? "Cet email est déjà utilisé."
-          : "Inscription impossible. Réessaie.";
-      Alert.alert("Erreur", msg);
+          : err instanceof Error
+            ? err.message
+            : "Inscription impossible. Réessaie.";
+      setApiError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={styles.container}>
       <ScrollView
-        className="flex-1 px-6"
+        style={styles.scrollView}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Back */}
-        <TouchableOpacity onPress={() => navigation.goBack()} className="mt-4 mb-6">
-          <Text className="text-neutral-500">← Retour</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backText}>← Retour</Text>
         </TouchableOpacity>
 
-        <Text className="text-3xl font-bold text-neutral-900 mb-2">Créer un compte</Text>
-        <Text className="text-neutral-500 mb-8">C'est gratuit, et ça prend 30 secondes.</Text>
+        <Text style={styles.title}>Créer un compte</Text>
+        <Text style={styles.subtitle}>C'est gratuit, et ça prend 30 secondes.</Text>
 
-        <View className="gap-4">
-          <View className="flex-row gap-3">
-            <View className="flex-1">
+        <View style={styles.formContainer}>
+          <View style={styles.nameRow}>
+            <View style={styles.nameField}>
               <Input
                 label="Prénom"
                 value={form.firstName}
@@ -86,7 +90,7 @@ export function RegisterScreen({ navigation }: Props) {
                 error={errors.firstName}
               />
             </View>
-            <View className="flex-1">
+            <View style={styles.nameField}>
               <Input
                 label="Nom"
                 value={form.lastName}
@@ -116,7 +120,7 @@ export function RegisterScreen({ navigation }: Props) {
             secureTextEntry={!showPassword}
             error={errors.password}
             rightIcon={
-              <Text className="text-neutral-500 text-sm">{showPassword ? "Cacher" : "Voir"}</Text>
+              <Text style={styles.showPasswordText}>{showPassword ? "Cacher" : "Voir"}</Text>
             }
             onRightIconPress={() => setShowPassword((v) => !v)}
           />
@@ -131,16 +135,88 @@ export function RegisterScreen({ navigation }: Props) {
           />
         </View>
 
-        <View className="mt-8 mb-4">
+        {apiError && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>{apiError}</Text>
+          </View>
+        )}
+
+        <View style={styles.submitContainer}>
           <Button label="Créer mon compte" onPress={handleRegister} loading={isLoading} />
         </View>
 
-        <Text className="text-xs text-neutral-400 text-center mb-8">
+        <Text style={styles.legalText}>
           En t'inscrivant, tu acceptes les{" "}
-          <Text className="text-primary">Conditions d'utilisation</Text> et la{" "}
-          <Text className="text-primary">Politique de confidentialité</Text> de SMASHI.
+          <Text style={styles.legalLink}>Conditions d'utilisation</Text> et la{" "}
+          <Text style={styles.legalLink}>Politique de confidentialité</Text> de SMASHI.
         </Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  backButton: {
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  backText: {
+    color: "#6B7280",
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: "#1A1A2E",
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: "#6B7280",
+    marginBottom: 32,
+  },
+  formContainer: {
+    gap: 16,
+  },
+  nameRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  nameField: {
+    flex: 1,
+  },
+  showPasswordText: {
+    color: "#6B7280",
+    fontSize: 14,
+  },
+  submitContainer: {
+    marginTop: 32,
+    marginBottom: 16,
+  },
+  legalText: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    textAlign: "center",
+    marginBottom: 32,
+  },
+  legalLink: {
+    color: "#2ECC71",
+  },
+  errorBanner: {
+    backgroundColor: "#FEE2E2",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  errorBannerText: {
+    color: "#DC2626",
+    fontSize: 14,
+    textAlign: "center",
+  },
+});

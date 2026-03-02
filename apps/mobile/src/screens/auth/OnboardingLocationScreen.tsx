@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Alert, TouchableOpacity } from "react-native";
+import { View, Text, Alert, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -57,14 +57,14 @@ export function OnboardingLocationScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1 px-6">
+    <SafeAreaView style={styles.container}>
+      <View style={styles.contentWrapper}>
         <OnboardingProgress step={3} total={4} />
 
-        <Text className="text-2xl font-bold text-neutral-900 mt-6 mb-2">
+        <Text style={styles.title}>
           Où joues-tu ?
         </Text>
-        <Text className="text-neutral-500 mb-8">
+        <Text style={styles.subtitle}>
           On cherche des parties dans un rayon autour de chez toi.
         </Text>
 
@@ -72,22 +72,18 @@ export function OnboardingLocationScreen({ navigation }: Props) {
         <TouchableOpacity
           onPress={handleGeolocate}
           disabled={locating}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 12,
-            padding: 16,
-            borderRadius: 12,
-            borderWidth: 2,
-            borderColor: latitude ? "#2ECC71" : "#E5E7EB",
-            backgroundColor: latitude ? "#EAFAF1" : "#F9FAFB",
-            marginBottom: 16,
-          }}
+          style={[
+            styles.geoButton,
+            latitude ? styles.geoButtonActive : styles.geoButtonDefault,
+          ]}
         >
-          <Text style={{ fontSize: 28 }}>📍</Text>
-          <View className="flex-1">
+          <Text style={styles.geoEmoji}>📍</Text>
+          <View style={styles.geoTextContainer}>
             <Text
-              className={`font-semibold ${latitude ? "text-primary-dark" : "text-neutral-900"}`}
+              style={[
+                styles.geoLabel,
+                latitude ? styles.geoLabelActive : styles.geoLabelDefault,
+              ]}
             >
               {locating
                 ? "Localisation en cours..."
@@ -95,17 +91,17 @@ export function OnboardingLocationScreen({ navigation }: Props) {
                 ? `${cityInput} ✓`
                 : "Utiliser ma position actuelle"}
             </Text>
-            <Text className="text-sm text-neutral-500">
+            <Text style={styles.geoSubLabel}>
               Recommandé — plus précis pour le matching
             </Text>
           </View>
         </TouchableOpacity>
 
         {/* Ou saisie manuelle */}
-        <View className="flex-row items-center gap-3 mb-4">
-          <View className="flex-1 h-px bg-neutral-200" />
-          <Text className="text-neutral-500 text-sm">ou</Text>
-          <View className="flex-1 h-px bg-neutral-200" />
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>ou</Text>
+          <View style={styles.dividerLine} />
         </View>
 
         <Input
@@ -117,30 +113,25 @@ export function OnboardingLocationScreen({ navigation }: Props) {
         />
 
         {/* Rayon de recherche */}
-        <View className="mt-8">
-          <Text className="text-base font-semibold text-neutral-900 mb-3">
+        <View style={styles.radiusContainer}>
+          <Text style={styles.radiusTitle}>
             Rayon de recherche
           </Text>
-          <View className="flex-row gap-3">
+          <View style={styles.radiusRow}>
             {RADIUS_OPTIONS.map((r) => (
               <TouchableOpacity
                 key={r}
                 onPress={() => setSearchRadius(r)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: 10,
-                  borderWidth: 2,
-                  borderColor: searchRadius === r ? "#2ECC71" : "#E5E7EB",
-                  backgroundColor: searchRadius === r ? "#EAFAF1" : "#fff",
-                  alignItems: "center",
-                }}
+                style={[
+                  styles.radiusButton,
+                  searchRadius === r ? styles.radiusButtonSelected : styles.radiusButtonDefault,
+                ]}
               >
                 <Text
-                  style={{
-                    fontWeight: "600",
-                    color: searchRadius === r ? "#1A9B50" : "#6B7280",
-                  }}
+                  style={[
+                    styles.radiusButtonText,
+                    { color: searchRadius === r ? "#1A9B50" : "#6B7280" },
+                  ]}
                 >
                   {r} km
                 </Text>
@@ -150,9 +141,118 @@ export function OnboardingLocationScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <View className="px-6 pb-8 pt-4">
+      <View style={styles.bottomContainer}>
         <Button label="Continuer" onPress={handleNext} />
       </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  contentWrapper: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1A1A2E",
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: "#6B7280",
+    marginBottom: 32,
+  },
+  geoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    marginBottom: 16,
+  },
+  geoButtonDefault: {
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
+  },
+  geoButtonActive: {
+    borderColor: "#2ECC71",
+    backgroundColor: "#EAFAF1",
+  },
+  geoEmoji: {
+    fontSize: 28,
+  },
+  geoTextContainer: {
+    flex: 1,
+  },
+  geoLabel: {
+    fontWeight: "600",
+  },
+  geoLabelDefault: {
+    color: "#1A1A2E",
+  },
+  geoLabelActive: {
+    color: "#1A9B50",
+  },
+  geoSubLabel: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E5E7EB",
+  },
+  dividerText: {
+    color: "#6B7280",
+    fontSize: 14,
+  },
+  radiusContainer: {
+    marginTop: 32,
+  },
+  radiusTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1A1A2E",
+    marginBottom: 12,
+  },
+  radiusRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  radiusButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: "center",
+  },
+  radiusButtonDefault: {
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+  radiusButtonSelected: {
+    borderColor: "#2ECC71",
+    backgroundColor: "#EAFAF1",
+  },
+  radiusButtonText: {
+    fontWeight: "600",
+  },
+  bottomContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    paddingTop: 16,
+  },
+});

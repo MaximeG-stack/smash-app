@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -6,11 +7,12 @@ import compression from "compression";
 
 import { authRouter } from "./routes/auth";
 import { usersRouter } from "./routes/users";
-// Sprint 2+
-// import { matchesRouter } from "./routes/matches";
+import { matchesRouter } from "./routes/matches";
+import { notificationsRouter } from "./routes/notifications";
+import { conversationsRouter } from "./routes/conversations";
+// Sprint 7+
 // import { clubsRouter } from "./routes/clubs";
 // import { bookingsRouter } from "./routes/bookings";
-// import { notificationsRouter } from "./routes/notifications";
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -31,14 +33,16 @@ app.get("/health", (_req, res) => {
 // Routes API
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
-// Sprint 2+
-// app.use("/api/matches", matchesRouter);
+app.use("/api/matches", matchesRouter);
+app.use("/api/notifications", notificationsRouter);
+app.use("/api/conversations", conversationsRouter);
+// Sprint 7+
 // app.use("/api/clubs", clubsRouter);
 // app.use("/api/bookings", bookingsRouter);
-// app.use("/api/notifications", notificationsRouter);
 
 // 404
-app.use((_req, res) => {
+app.use((req, res) => {
+  console.warn(`[404] ${req.method} ${req.originalUrl}`);
   res.status(404).json({ error: "Route introuvable" });
 });
 
@@ -48,8 +52,16 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: "Erreur serveur interne" });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 SMASHI API démarrée sur http://localhost:${PORT}`);
+});
+
+server.on("error", (err: NodeJS.ErrnoException) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`❌ Le port ${PORT} est déjà utilisé. Lance : lsof -ti :${PORT} | xargs kill -9`);
+    process.exit(1);
+  }
+  throw err;
 });
 
 export default app;
